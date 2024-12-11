@@ -11,7 +11,7 @@
     <groupId>com.jeckchen</groupId>
     <artifactId>HumanVerificationSystem</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <packaging>war</packaging>
+    <packaging>jar</packaging>
     <name>HumanVerificationSystem</name>
     <description>HumanVerificationSystem</description>
     <url/>
