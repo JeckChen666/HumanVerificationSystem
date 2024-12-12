@@ -23,7 +23,7 @@ public class ResourcesConfig implements WebMvcConfigurer {
         // 全局访问性能拦截
         registry.addInterceptor(webInvokeTimeInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/static/**", "/js/**", "/css/**", "/images/**");
+                .excludePathPatterns("/static/**", "/js/**", "/css/**", "/images/**", "/ico/**");
     }
 
     /**
