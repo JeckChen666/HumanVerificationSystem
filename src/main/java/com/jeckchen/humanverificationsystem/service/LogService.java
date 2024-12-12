@@ -10,6 +10,7 @@ import com.jeckchen.humanverificationsystem.pojo.IpApiResp;
 import com.jeckchen.humanverificationsystem.pojo.LogRecord;
 import com.jeckchen.humanverificationsystem.pojo.VerificationRequest;
 import com.jeckchen.humanverificationsystem.repository.LogRecordRepository;
+import com.jeckchen.humanverificationsystem.utils.IpUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +67,7 @@ public class LogService {
         String time = DateUtil.format(LocalDateTime.now(), "yyyy-MM-dd HH:mm:ss");
         String sessionId = request.getSession()
                                   .getId();
-        String ip = request.getRemoteAddr();
+        String ip = IpUtil.getIpAddr(request);
         String requestURI = request.getRequestURI();
         IpApiResp ipApiResp = useApi(ip);
         String region = ipApiResp.getCountry_name();
