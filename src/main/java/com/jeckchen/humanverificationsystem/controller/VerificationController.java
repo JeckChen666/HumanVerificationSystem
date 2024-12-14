@@ -1,7 +1,7 @@
 package com.jeckchen.humanverificationsystem.controller;
 
 
-import com.jeckchen.humanverificationsystem.config.RateLimit;
+import com.jeckchen.humanverificationsystem.config.rateLimit.RateLimit;
 import com.jeckchen.humanverificationsystem.pojo.VerificationRequest;
 import com.jeckchen.humanverificationsystem.service.VerificationService;
 import jakarta.annotation.Resource;

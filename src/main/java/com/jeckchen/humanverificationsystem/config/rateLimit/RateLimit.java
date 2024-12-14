@@ -1,4 +1,4 @@
-package com.jeckchen.humanverificationsystem.config;
+package com.jeckchen.humanverificationsystem.config.rateLimit;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

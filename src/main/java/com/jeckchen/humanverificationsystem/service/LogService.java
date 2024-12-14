@@ -21,10 +21,15 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @Slf4j
@@ -32,9 +37,11 @@ public class LogService {
 
     ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
-    Cache<String, IpApiResp> lruCache = CacheUtil.newLRUCache(20);
+    Cache<String, IpApiResp> lruCache = CacheUtil.newLRUCache(50);
 
     TimedCache<String, String> timedCache = CacheUtil.newTimedCache(DateUnit.HOUR.getMillis() * 6, DateUnit.MINUTE.getMillis() * 5);
+
+    private final ConcurrentHashMap<String, WeakReference<Lock>> locks = new ConcurrentHashMap<>();
 
     @Resource
     private IpApiRestTemplate ipApiRestTemplate;
@@ -143,20 +150,42 @@ public class LogService {
         return timeResp;
     }
 
-    private IpApiResp useApi(String ip) {
+    public IpApiResp useApi(String ip) {
         IpApiResp locationOfIp;
         locationOfIp = lruCache.get(ip);
         if (null != locationOfIp) {
             return locationOfIp;
         }
+
+        // 获取或创建锁对象
+        WeakReference<Lock> lockRef = locks.get(ip);
+        Lock lock = null;
+        if (lockRef != null) {
+            lock = lockRef.get();
+        }
+        if (lock == null) {
+            lock = new ReentrantLock();
+            locks.put(ip, new WeakReference<>(lock));
+        }
+
+        lock.lock(); // 加锁
         try {
-            locationOfIp = ipApiRestTemplate.getLocationOfIp(ip);
-            log.info("use \"ipapi.co\" api Success, response:{}", JSONUtil.toJsonStr(locationOfIp));
+            // 再次检查缓存，防止其他线程已经填充了缓存
+            locationOfIp = lruCache.get(ip);
+            if (null == locationOfIp) {
+                locationOfIp = ipApiRestTemplate.getLocationOfIp(ip);
+                log.info("use \"ipapi.co\" api Success, response:{}", JSONUtil.toJsonStr(locationOfIp));
+                if (null != locationOfIp) {
+                    lruCache.put(ip, locationOfIp, DateUnit.HOUR.getMillis() * 48);
+                }
+            }
         } catch (RuntimeException e) {
             log.error("use \"ipapi.co\" api Error", e);
+        } finally {
+            lock.unlock(); // 解锁
         }
+
         if (null != locationOfIp) {
-            lruCache.put(ip, locationOfIp, DateUnit.HOUR.getMillis() * 12);
             return locationOfIp;
         }
         return IpApiResp.getUnknown();

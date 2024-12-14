@@ -3,7 +3,6 @@ package com.jeckchen.humanverificationsystem.service;
 import com.jeckchen.humanverificationsystem.pojo.LogRecord;
 import com.jeckchen.humanverificationsystem.repository.LogRecordRepository;
 import jakarta.annotation.Resource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;

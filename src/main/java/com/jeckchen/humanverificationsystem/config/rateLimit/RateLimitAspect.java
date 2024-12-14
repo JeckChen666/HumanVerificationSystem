@@ -1,4 +1,4 @@
-package com.jeckchen.humanverificationsystem.config;
+package com.jeckchen.humanverificationsystem.config.rateLimit;
 
 import com.jeckchen.humanverificationsystem.utils.IpUtil;
 import jakarta.servlet.http.HttpServletRequest;

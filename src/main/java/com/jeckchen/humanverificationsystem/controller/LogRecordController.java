@@ -1,7 +1,7 @@
 package com.jeckchen.humanverificationsystem.controller;
 
 import cn.hutool.core.date.DateUtil;
-import com.jeckchen.humanverificationsystem.config.RateLimit;
+import com.jeckchen.humanverificationsystem.config.rateLimit.RateLimit;
 import com.jeckchen.humanverificationsystem.pojo.LogRecord;
 import com.jeckchen.humanverificationsystem.service.LogRecordService;
 import com.jeckchen.humanverificationsystem.service.VerificationService;
