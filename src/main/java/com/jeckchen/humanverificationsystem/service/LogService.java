@@ -3,19 +3,21 @@ package com.jeckchen.humanverificationsystem.service;
 import cn.hutool.cache.Cache;
 import cn.hutool.cache.CacheUtil;
 import cn.hutool.cache.impl.TimedCache;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.json.JSONUtil;
 import com.jeckchen.humanverificationsystem.pojo.IpApiResp;
 import com.jeckchen.humanverificationsystem.pojo.LogRecord;
 import com.jeckchen.humanverificationsystem.pojo.VerificationRequest;
-import com.jeckchen.humanverificationsystem.repository.LogRecordRepository;
 import com.jeckchen.humanverificationsystem.utils.IpUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -23,7 +25,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -34,6 +36,8 @@ import java.util.concurrent.locks.ReentrantLock;
 @Service
 @Slf4j
 public class LogService {
+
+    public static final String TODO = "TODO";
 
     ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
@@ -47,13 +51,14 @@ public class LogService {
     private IpApiRestTemplate ipApiRestTemplate;
 
     @Resource
-    private LogRecordRepository logRecordRepository;
+    private LogRecordService logRecordService;
 
     private static final String JSON_DIR = "json/";
 
     public void logAccess(HttpServletRequest request) {
         String operation = "访问主页";
         LogRecord record = constructLogRecord(request, operation);
+        log.info("构造Record完成：{}", record);
         saveLogRecord(record);
     }
 
@@ -63,7 +68,6 @@ public class LogService {
         saveLogRecord(record);
     }
 
-    @Async
     public void logVerification(HttpServletRequest request, VerificationRequest verificationRequest, boolean isCorrect) {
         String operation = "验证题目：" + verificationRequest.getQuestion() + " 给出的答案：" + verificationRequest.getAnswer() + " 是否正确：" + isCorrect;
         LogRecord record = constructLogRecord(request, operation);
@@ -71,14 +75,25 @@ public class LogService {
     }
 
     private LogRecord constructLogRecord(HttpServletRequest request, String operation) {
+        return constructLogRecord(request, operation, Boolean.FALSE);
+    }
+
+    private LogRecord constructLogRecord(HttpServletRequest request, String operation, Boolean useApi) {
         String time = DateUtil.format(LocalDateTime.now(), "yyyy-MM-dd HH:mm:ss");
-        String sessionId = request.getSession()
-                                  .getId();
+        HttpSession session = request.getSession();
+        String sessionId = "null";
+        if (null != session) {
+            sessionId = session.getId();
+        }
         String ip = IpUtil.getIpAddr(request);
         String requestURI = request.getRequestURI();
-        IpApiResp ipApiResp = useApi(ip);
-        String region = ipApiResp.getCountry_name();
-        String city = ipApiResp.getCity();
+        String region = "TODO";
+        String city = "TODO";
+        if (useApi) {
+            IpApiResp ipApiResp = useApi(ip);
+            region = ipApiResp.getCountry_name();
+            city = ipApiResp.getCity();
+        }
         String deviceInfo = request.getHeader("User-Agent");
         String firstVisit = getFirstVisit(sessionId);
         return LogRecord.builder()
@@ -96,11 +111,16 @@ public class LogService {
 
 
     private void saveLogRecord(LogRecord entity) {
-//        CompletableFuture.runAsync(() -> {
+        log.info("准备写入日志：{}", entity);
+        //        CompletableFuture.runAsync(() -> {
 //            saveToJson(entity);
 //        }, executor);
         CompletableFuture.runAsync(() -> {
-            saveToDB(entity);
+            try {
+                saveToDB(entity);
+            } catch (Exception e) {
+                log.error("写入日志失败", e);
+            }
         }, executor);
     }
 
@@ -116,7 +136,7 @@ public class LogService {
     }
 
     private void saveToDB(LogRecord entity) {
-        logRecordRepository.save(entity);
+        logRecordService.save(entity);
     }
 
     private void ensureDirectoryExists(String dir) {
@@ -141,6 +161,9 @@ public class LogService {
 
     private String getFirstVisit(String sessionId) {
         String timeResp;
+        if (StringUtils.isBlank(sessionId)) {
+            return "-";
+        }
         timeResp = timedCache.get(sessionId);
         if (StringUtils.isBlank(timeResp)) {
             String time = DateUtil.format(LocalDateTime.now(), "yyyy-MM-dd HH:mm:ss");
@@ -179,8 +202,9 @@ public class LogService {
                     lruCache.put(ip, locationOfIp, DateUnit.HOUR.getMillis() * 48);
                 }
             }
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             log.error("use \"ipapi.co\" api Error", e);
+            return useApi(ip);
         } finally {
             lock.unlock(); // 解锁
         }
@@ -189,5 +213,61 @@ public class LogService {
             return locationOfIp;
         }
         return IpApiResp.getUnknown();
+    }
+
+
+    @Async
+    @Scheduled(cron = "0 0 0/1 * * ?")
+//    @Scheduled(cron = "0 0/1 * * * ?")
+    public void scheduleUseApi() {
+        List<LogRecord> oneHour = logRecordService.findAllWithinOneHour();
+        log.info("oneHour size:{}", oneHour.size());
+        if (CollUtil.isEmpty(oneHour)) {
+            return;
+        }
+        for (LogRecord logRecord : oneHour) {
+            if (!TODO.equals(logRecord.getCountry())) {
+                continue;
+            }
+            CompletableFuture.runAsync(() -> {
+                Long id = logRecord.getId();
+                String ip = logRecord.getIp();
+                log.info("schedule excuse useApi -- id:{}, ip:{}", id, ip);
+                IpApiResp ipApiResp = useApi(ip);
+                String countryName = ipApiResp.getCountry_name();
+                logRecord.setCountry(countryName);
+                String city = ipApiResp.getCity();
+                logRecord.setCity(city);
+                log.info("schedule excuse update DB -- id:{}, ip:{}, country:{}, city:{} ", id, ip, countryName, city);
+                logRecordService.update(logRecord);
+            }, executor);
+        }
+    }
+
+    @Async
+    @Scheduled(cron = "0 0 0 1/1 * ? ")
+    public void scheduleUseApi2() {
+        List<LogRecord> twoDays = logRecordService.findAllWithinTwoDays();
+        log.info("twoDay size:{}", twoDays.size());
+        if (CollUtil.isEmpty(twoDays)) {
+            return;
+        }
+        for (LogRecord logRecord : twoDays) {
+            if (!TODO.equals(logRecord.getCountry())) {
+                continue;
+            }
+            CompletableFuture.runAsync(() -> {
+                Long id = logRecord.getId();
+                String ip = logRecord.getIp();
+                log.info("schedule excuse useApi -- id:{}, ip:{}", id, ip);
+                IpApiResp ipApiResp = useApi(ip);
+                String countryName = ipApiResp.getCountry_name();
+                logRecord.setCountry(countryName);
+                String city = ipApiResp.getCity();
+                logRecord.setCity(city);
+                log.info("schedule excuse update DB -- id:{}, ip:{}, country:{}, city:{} ", id, ip, countryName, city);
+                logRecordService.update(logRecord);
+            }, executor);
+        }
     }
 }

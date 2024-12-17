@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -51,5 +53,38 @@ public class LogRecordService {
 
         return logRecordRepository.findAllWithFilters(
                 sessionId, ip, url, country, city, deviceInfo, operation, firstVisit, startDate, endDate);
+    }
+
+    // 获取一小时之内的所有数据
+    public List<LogRecord> findAllWithinOneHour() {
+        // 防止定时器执行慢了导致部分数据没有被查出来，所以多查询2分钟
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusMinutes(620);
+        List<LogRecord> oneHour = logRecordRepository.findAllAfterTime(oneHourAgo);
+        if (null==oneHour){
+            return Collections.emptyList();
+        }
+        return oneHour;
+    }
+
+    // 获取最近两天的所有数据
+    public List<LogRecord> findAllWithinTwoDays() {
+        LocalDateTime twoDaysAgo = LocalDateTime.now().minusDays(2);
+        List<LogRecord> twoDays = logRecordRepository.findAllAfterTime(twoDaysAgo);
+        if (null==twoDays){
+            return Collections.emptyList();
+        }
+        return twoDays;
+    }
+
+    public void updateAll(Collection<LogRecord> logRecords){
+        logRecordRepository.saveAll(logRecords);
+    }
+
+    public void update(LogRecord logRecord){
+        logRecordRepository.save(logRecord);
+    }
+
+    public void save(LogRecord logRecord){
+        logRecordRepository.save(logRecord);
     }
 }

@@ -59,5 +59,8 @@ public interface LogRecordRepository extends JpaRepository<LogRecord, Long> {
             @Param("firstVisit") String firstVisit,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT l FROM LogRecord l WHERE l.createdAt >= :time")
+    List<LogRecord> findAllAfterTime(LocalDateTime time);
 }
 
