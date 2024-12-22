@@ -215,61 +215,7 @@
             return date.isValid() ? date.format('YYYY-MM-DD HH:mm:ss') : '';
         }
 
-
-        // function loadData(page = 0) {
-        //     const formData = $('#searchForm').serializeArray();
-        //     formData.push({ name: 'page', value: page });
-        //     formData.push({ name: 'size', value: pageSize });
-        //
-        //     $.get('/api/log-records', formData, function(response) {
-        //         $logTable.empty();
-        //         response.data.forEach(record => {
-        //             $logTable.append(`
-        //             <tr>
-        //                 <td><div class="truncate" data-full="${record.id}">${record.id}</div></td>
-        //                 <td><div class="truncate" data-full="${record.sessionId}">${record.sessionId}</div></td>
-        //                 <td><div class="truncate" data-full="${record.ip}">${record.ip}</div></td>
-        //                 <td><div class="truncate" data-full="${record.url}">${record.url}</div></td>
-        //                 <td><div class="truncate" data-full="${record.country}">${record.country}</div></td>
-        //                 <td><div class="truncate" data-full="${record.city}">${record.city}</div></td>
-        //                 <td><div class="truncate" data-full="${record.deviceInfo}">${record.deviceInfo}</div></td>
-        //                 <td><div class="truncate" data-full="${record.operation}">${record.operation}</div></td>
-        //                 <td><div class="truncate" data-full="${record.firstVisit}">${record.firstVisit}</div></td>
-        //                 <td><div class="truncate" data-full="${record.createdAt}">${record.createdAt}</div></td>
-        //             </tr>
-        //         `);
-        //         });
-        //
-        //         totalItems = response.totalItems;
-        //         $pagination.empty();
-        //
-        //         // Add prev button
-        //         $pagination.append(`
-        //         <a class="item ${currentPage === 0 ? 'disabled' : ''}" data-page="${currentPage - 1}">
-        //             <i class="left chevron icon"></i>
-        //         </a>
-        //     `);
-        //
-        //         // Add page numbers
-        //         for (let i = 0; i < Math.ceil(totalItems / pageSize); i++) {
-        //             $pagination.append(`
-        //             <a class="item ${i === currentPage ? 'active' : ''}" data-page="${i}">
-        //                 ${i + 1}
-        //             </a>
-        //         `);
-        //         }
-        //
-        //         // Add next button
-        //         $pagination.append(`
-        //         <a class="item ${currentPage >= Math.ceil(totalItems / pageSize) - 1 ? 'disabled' : ''}" data-page="${currentPage + 1}">
-        //             <i class="right chevron icon"></i>
-        //         </a>
-        //     `);
-        //     });
-        // }
-
         function loadData(page = 0) {
-            // 获取表单数据
             const formData = {};
             $('#searchForm').serializeArray().forEach(item => {
                 formData[item.name] = item.value;
@@ -287,93 +233,109 @@
             formData.page = page;
             formData.size = pageSize;
 
-            // 发送POST请求
             $.ajax({
                 url: '/api/log-records',
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(formData),
+                dataType: 'json',
                 success: function(response) {
+                    // 确保清空现有内容
                     $logTable.empty();
-                    response.data.forEach(record => {
-                        $logTable.append(`
-                        <tr>
-                            <td><div class="truncate" data-full="${record.id}">${record.id}</div></td>
-                            <td><div class="truncate" data-full="${record.sessionId}">${record.sessionId}</div></td>
-                            <td><div class="truncate" data-full="${record.ip}">${record.ip}</div></td>
-                            <td><div class="truncate" data-full="${record.url}">${record.url}</div></td>
-                            <td><div class="truncate" data-full="${record.country}">${record.country}</div></td>
-                            <td><div class="truncate" data-full="${record.city}">${record.city}</div></td>
-                            <td><div class="truncate" data-full="${record.deviceInfo}">${record.deviceInfo}</div></td>
-                            <td><div class="truncate" data-full="${record.operation}">${record.operation}</div></td>
-                            <td><div class="truncate" data-full="${record.firstVisit}">${record.firstVisit}</div></td>
-                            <td><div class="truncate" data-full="${record.createdAt}">${record.createdAt}</div></td>
-                        </tr>
-                    `);
-                    });
 
-                    totalItems = response.totalItems;
-                    $pagination.empty();
-
-                    // Add prev button
-                    $pagination.append(`
-                    <a class="item ${currentPage === 0 ? 'disabled' : ''}" data-page="${currentPage - 1}">
-                        <i class="left chevron icon"></i>
-                    </a>
-                `);
-
-                    // Add page numbers
-                    for (let i = 0; i < Math.ceil(totalItems / pageSize); i++) {
-                        $pagination.append(`
-                        <a class="item ${i === currentPage ? 'active' : ''}" data-page="${i}">
-                            ${i + 1}
-                        </a>
-                    `);
+                    if (!response.data || response.data.length === 0) {
+                        $logTable.append('<tr><td colspan="10" class="center aligned">No data available</td></tr>');
+                        return;
                     }
 
-                    // Add next button
-                    $pagination.append(`
-                    <a class="item ${currentPage >= Math.ceil(totalItems / pageSize) - 1 ? 'disabled' : ''}" data-page="${currentPage + 1}">
-                        <i class="right chevron icon"></i>
-                    </a>
-                `);
+                    // 渲染新数据
+                    response.data.forEach(record => {
+                        const row = $(`
+                        <tr>
+                            <td><div class="truncate" data-full="${escapeHtml(record.id)}">${escapeHtml(record.id)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.sessionId)}">${escapeHtml(record.sessionId)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.ip)}">${escapeHtml(record.ip)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.url)}">${escapeHtml(record.url)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.country)}">${escapeHtml(record.country)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.city)}">${escapeHtml(record.city)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.deviceInfo)}">${escapeHtml(record.deviceInfo)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.operation)}">${escapeHtml(record.operation)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.firstVisit)}">${escapeHtml(record.firstVisit)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.createdAt)}">${escapeHtml(record.createdAt)}</div></td>
+                        </tr>
+                    `);
+                        $logTable.append(row);
+                    });
+
+                    // 更新分页信息
+                    updatePagination(response.totalItems);
                 },
                 error: function(xhr, status, error) {
                     console.error('Error loading data:', error);
-                    // 可以添加错误提示
-                    $logTable.html('<tr><td colspan="10" class="center aligned">Error loading data</td></tr>');
+                    $logTable.empty().append('<tr><td colspan="10" class="center aligned">Error loading data</td></tr>');
                 }
             });
         }
 
+        // 辅助函数：HTML转义
+        function escapeHtml(unsafe) {
+            if (unsafe == null) return '';
+            return unsafe
+                .toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
-        // Handle search button click
+        // 辅助函数：更新分页
+        function updatePagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / pageSize);
+            $pagination.empty();
+
+            // 添加上一页按钮
+            $pagination.append(`
+            <a class="item ${currentPage === 0 ? 'disabled' : ''}" data-page="${currentPage - 1}">
+                <i class="left chevron icon"></i>
+            </a>
+        `);
+
+            // 添加页码按钮
+            for (let i = 0; i < totalPages; i++) {
+                $pagination.append(`
+                <a class="item ${i === currentPage ? 'active' : ''}" data-page="${i}">
+                    ${i + 1}
+                </a>
+            `);
+            }
+
+            // 添加下一页按钮
+            $pagination.append(`
+            <a class="item ${currentPage >= totalPages - 1 ? 'disabled' : ''}" data-page="${currentPage + 1}">
+                <i class="right chevron icon"></i>
+            </a>
+        `);
+        }
+
+        // 事件处理程序
         $('#searchButton').click(function() {
             currentPage = 0;
             loadData(currentPage);
         });
 
-        // Handle pagination click
         $pagination.on('click', '.item:not(.disabled)', function() {
             currentPage = parseInt($(this).data('page'));
             loadData(currentPage);
         });
 
-        // Handle page size change
         $pageSize.change(function() {
-            pageSize = $(this).val();
+            pageSize = parseInt($(this).val());
             currentPage = 0;
             loadData(currentPage);
         });
 
-        // Handle cell click to show modal
-        $logTable.on('click', '.truncate', function() {
-            const fullContent = $(this).data('full');
-            $('#modalContent').text(fullContent);
-            $('#contentModal').modal('show');
-        });
-
-        // Load initial data
+        // 加载初始数据
         loadData();
     });
 </script>

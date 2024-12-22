@@ -4,6 +4,7 @@ import cn.hutool.core.date.DateUtil;
 import com.jeckchen.humanverificationsystem.config.VirtualThreadExecutor;
 import com.jeckchen.humanverificationsystem.config.rateLimit.RateLimit;
 import com.jeckchen.humanverificationsystem.pojo.LogRecord;
+import com.jeckchen.humanverificationsystem.pojo.LogRecordRequest;
 import com.jeckchen.humanverificationsystem.service.LogAccessService;
 import com.jeckchen.humanverificationsystem.service.LogRecordService;
 import com.jeckchen.humanverificationsystem.service.VerificationService;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -65,23 +68,22 @@ public class LogRecordController {
     }
 
     @RateLimit(ipLimit = 5, globalLimit = 100)
-    @RequestMapping("/api/log-records")
+    @PostMapping("/api/log-records")
     @ResponseBody
-    public Map<String, Object> getLogRecords(
-            @RequestParam(required = false) String sessionId,
-            @RequestParam(required = false) String ip,
-            @RequestParam(required = false) String url,
-            @RequestParam(required = false) String country,
-            @RequestParam(required = false) String city,
-            @RequestParam(required = false) String deviceInfo,
-            @RequestParam(required = false) String operation,
-            @RequestParam(required = false) String firstVisit,
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate,
-            @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size) {
+    public Map<String, Object> getLogRecords(@RequestBody LogRecordRequest logRecordRequest) {
 
-
+        String sessionId = logRecordRequest.getSessionId();
+        String ip = logRecordRequest.getIp();
+        String url = logRecordRequest.getUrl();
+        String country = logRecordRequest.getCountry();
+        String city = logRecordRequest.getCity();
+        String deviceInfo = logRecordRequest.getDeviceInfo();
+        String operation = logRecordRequest.getOperation();
+        String firstVisit = logRecordRequest.getFirstVisit();
+        Integer page = logRecordRequest.getPage();
+        Integer size = logRecordRequest.getSize();
+        String startDate = logRecordRequest.getStartDate();
+        String endDate = logRecordRequest.getEndDate();
 
         List<LogRecord> logRecords;
         long totalItems = 0;
