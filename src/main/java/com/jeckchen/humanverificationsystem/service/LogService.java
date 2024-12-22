@@ -125,6 +125,9 @@ public class LogService {
             city = ipApiResp.getCity();
         }
         String deviceInfo = request.getHeader("User-Agent");
+        if (StringUtils.isBlank(deviceInfo)) {
+            deviceInfo = "unknown";
+        }
         String firstVisit = getFirstVisit(sessionId);
         return LogRecord.builder()
                         .time(time)
