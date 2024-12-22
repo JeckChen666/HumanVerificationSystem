@@ -1,8 +1,10 @@
 package com.jeckchen.humanverificationsystem.controller;
 
 
+import com.jeckchen.humanverificationsystem.config.VirtualThreadExecutor;
 import com.jeckchen.humanverificationsystem.config.rateLimit.RateLimit;
 import com.jeckchen.humanverificationsystem.pojo.VerificationRequest;
+import com.jeckchen.humanverificationsystem.service.LogAccessService;
 import com.jeckchen.humanverificationsystem.service.VerificationService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,21 +19,23 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 
 @Controller
 public class VerificationController {
 
-    ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    ExecutorService executor = VirtualThreadExecutor.getInstance();
 
     @Resource
     private VerificationService verificationService;
 
+    @Resource
+    private LogAccessService logAccessService;
+
     @RateLimit(ipLimit = 5, globalLimit = 100)
     @GetMapping("/")
     public String index(Model model, HttpServletRequest request) {
-        CompletableFuture.runAsync(() -> verificationService.logAccess(request), executor);
+        CompletableFuture.runAsync(() -> logAccessService.logAccess(request), executor);
         return "index";
     }
 
@@ -52,10 +56,10 @@ public class VerificationController {
     public Map<String, Object> verify(@RequestParam String answer, @RequestParam String questionText, HttpServletRequest request) {
         VerificationRequest verificationRequest = new VerificationRequest(questionText, answer);
         boolean isCorrect = verificationService.verifyAnswer(verificationRequest);
-        CompletableFuture.runAsync(() -> verificationService.logVerification(request, verificationRequest, isCorrect), executor);
+        CompletableFuture.runAsync(() -> logAccessService.logVerification(request, verificationRequest, isCorrect), executor);
         Map<String, Object> response = new HashMap<>();
         response.put("correct", isCorrect);
-        response.put("redirectUrl", verificationService.getRedirectUrl());
+        response.put("redirectUrl", logAccessService.getRedirectUrl());
         return response;
     }
 }

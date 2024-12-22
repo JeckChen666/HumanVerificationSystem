@@ -1,5 +1,7 @@
 package com.jeckchen.humanverificationsystem.controller;
 
+import com.jeckchen.humanverificationsystem.config.VirtualThreadExecutor;
+import com.jeckchen.humanverificationsystem.service.LogAccessService;
 import com.jeckchen.humanverificationsystem.service.VerificationService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,15 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @RestController
 public class CustomErrorController implements ErrorController {
 
-    ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    ExecutorService executor = VirtualThreadExecutor.getInstance();
 
     @Resource
-    private VerificationService verificationService;
+    private LogAccessService logAccessService;
 
     @RequestMapping("/error")
     public String handleError(HttpServletRequest request) {
@@ -28,7 +29,7 @@ public class CustomErrorController implements ErrorController {
         // 判断是否为 404 错误
         Integer statusCode = (Integer) request.getAttribute("jakarta.servlet.error.status_code");
 
-        CompletableFuture.runAsync(() -> verificationService.logAccess(request, originalUri), executor);
+        CompletableFuture.runAsync(() -> logAccessService.logAccess(request, originalUri, originalUri), executor);
 
         if (statusCode != null && statusCode == HttpServletResponse.SC_NOT_FOUND) {
             return "The requested URL [" + originalUri + "] does not exist. Redirected to custom handler.";

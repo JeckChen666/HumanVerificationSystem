@@ -1,8 +1,10 @@
 package com.jeckchen.humanverificationsystem.controller;
 
 import cn.hutool.core.date.DateUtil;
+import com.jeckchen.humanverificationsystem.config.VirtualThreadExecutor;
 import com.jeckchen.humanverificationsystem.config.rateLimit.RateLimit;
 import com.jeckchen.humanverificationsystem.pojo.LogRecord;
+import com.jeckchen.humanverificationsystem.service.LogAccessService;
 import com.jeckchen.humanverificationsystem.service.LogRecordService;
 import com.jeckchen.humanverificationsystem.service.VerificationService;
 import jakarta.annotation.Resource;
@@ -23,12 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Controller
 public class LogRecordController {
 
-    ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    ExecutorService executor = VirtualThreadExecutor.getInstance();
 
     @Resource
     private VerificationService verificationService;
@@ -36,10 +37,13 @@ public class LogRecordController {
     @Resource
     private LogRecordService logRecordService;
 
+    @Resource
+    private LogAccessService logAccessService;
+
     @RateLimit(ipLimit = 5, globalLimit = 100)
     @GetMapping("/log")
     public String showLogRecordsPage(Model model, HttpServletRequest request) {
-        CompletableFuture.runAsync(() -> verificationService.logAccess(request, "/log"), executor);
+        CompletableFuture.runAsync(() -> logAccessService.logAccess(request, "/log"), executor);
         // 这里可以传递一些默认值或空值到前端
         model.addAttribute("sessionId", "");
         model.addAttribute("ip", "");

@@ -1,6 +1,7 @@
 package com.jeckchen.humanverificationsystem.service;
 
 import com.jeckchen.humanverificationsystem.config.AppConfig;
+import com.jeckchen.humanverificationsystem.pojo.LogRecord;
 import com.jeckchen.humanverificationsystem.pojo.VerificationRequest;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.Random;
 
 @Service
-public class VerificationService {
+public class VerificationService{
 
     private static final String[] symbols = {"+", "-"};
 
@@ -75,22 +76,6 @@ public class VerificationService {
         int result = parts[1].equals("+") ? num1 + num2 : num1 - num2;
         int userAnswer = Integer.parseInt(verificationRequest.getAnswer());
         return userAnswer == result;
-    }
-
-    public void logAccess(HttpServletRequest request) {
-        logService.logAccess(request);
-    }
-
-    public void logAccess(HttpServletRequest request,String pageName) {
-        logService.logAccess(request,pageName);
-    }
-
-    public void logVerification(HttpServletRequest request, VerificationRequest verificationRequest, boolean isCorrect) {
-        logService.logVerification(request, verificationRequest, isCorrect);
-    }
-
-    public String getRedirectUrl() {
-        return appConfig.getRedirectUrl();
     }
 
     @Getter

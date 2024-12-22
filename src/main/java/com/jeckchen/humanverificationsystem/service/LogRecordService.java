@@ -59,7 +59,7 @@ public class LogRecordService {
     public List<LogRecord> findAllWithinOneHour() {
         // 防止定时器执行慢了导致部分数据没有被查出来，所以多查询2分钟
         LocalDateTime oneHourAgo = LocalDateTime.now().minusMinutes(620);
-        List<LogRecord> oneHour = logRecordRepository.findAllAfterTime(oneHourAgo);
+        List<LogRecord> oneHour = logRecordRepository.findAllTodoAfterTime(oneHourAgo);
         if (null==oneHour){
             return Collections.emptyList();
         }
@@ -69,7 +69,7 @@ public class LogRecordService {
     // 获取最近两天的所有数据
     public List<LogRecord> findAllWithinTwoDays() {
         LocalDateTime twoDaysAgo = LocalDateTime.now().minusDays(2);
-        List<LogRecord> twoDays = logRecordRepository.findAllAfterTime(twoDaysAgo);
+        List<LogRecord> twoDays = logRecordRepository.findAllTodoAfterTime(twoDaysAgo);
         if (null==twoDays){
             return Collections.emptyList();
         }

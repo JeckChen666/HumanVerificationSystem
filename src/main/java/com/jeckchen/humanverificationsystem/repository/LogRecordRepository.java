@@ -1,6 +1,7 @@
 package com.jeckchen.humanverificationsystem.repository;
 
 import com.jeckchen.humanverificationsystem.pojo.LogRecord;
+import com.jeckchen.humanverificationsystem.service.LogService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -60,7 +61,7 @@ public interface LogRecordRepository extends JpaRepository<LogRecord, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 
-    @Query("SELECT l FROM LogRecord l WHERE l.createdAt >= :time")
-    List<LogRecord> findAllAfterTime(LocalDateTime time);
+    @Query("SELECT l FROM LogRecord l WHERE l.createdAt >= :time AND l.country = " + "\"" + LogService.TODO + "\"")
+    List<LogRecord> findAllTodoAfterTime(LocalDateTime time);
 }
 
