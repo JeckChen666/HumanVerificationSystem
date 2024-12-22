@@ -125,15 +125,15 @@
             <thead>
             <tr>
                 <th>ID</th>
-                <th>Session ID</th>
+                <th>Created At</th>
                 <th>IP</th>
                 <th>URL</th>
                 <th>Country</th>
                 <th>City</th>
-                <th>Device Info</th>
                 <th>Operation</th>
+                <th>Device Info</th>
                 <th>First Visit</th>
-                <th>Created At</th>
+                <th>Session ID</th>
             </tr>
             </thead>
             <tbody id="logTable">
@@ -253,15 +253,15 @@
                         const row = $(`
                         <tr>
                             <td><div class="truncate" data-full="${escapeHtml(record.id)}">${escapeHtml(record.id)}</div></td>
-                            <td><div class="truncate" data-full="${escapeHtml(record.sessionId)}">${escapeHtml(record.sessionId)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.createdAt)}">${escapeHtml(record.createdAt)}</div></td>
                             <td><div class="truncate" data-full="${escapeHtml(record.ip)}">${escapeHtml(record.ip)}</div></td>
                             <td><div class="truncate" data-full="${escapeHtml(record.url)}">${escapeHtml(record.url)}</div></td>
                             <td><div class="truncate" data-full="${escapeHtml(record.country)}">${escapeHtml(record.country)}</div></td>
                             <td><div class="truncate" data-full="${escapeHtml(record.city)}">${escapeHtml(record.city)}</div></td>
-                            <td><div class="truncate" data-full="${escapeHtml(record.deviceInfo)}">${escapeHtml(record.deviceInfo)}</div></td>
                             <td><div class="truncate" data-full="${escapeHtml(record.operation)}">${escapeHtml(record.operation)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.deviceInfo)}">${escapeHtml(record.deviceInfo)}</div></td>
                             <td><div class="truncate" data-full="${escapeHtml(record.firstVisit)}">${escapeHtml(record.firstVisit)}</div></td>
-                            <td><div class="truncate" data-full="${escapeHtml(record.createdAt)}">${escapeHtml(record.createdAt)}</div></td>
+                            <td><div class="truncate" data-full="${escapeHtml(record.sessionId)}">${escapeHtml(record.sessionId)}</div></td>
                         </tr>
                     `);
                         $logTable.append(row);

@@ -110,13 +110,13 @@ public class LogService {
         if (null != session) {
             sessionId = session.getId();
         }
-        String ip;
-        if (StringUtils.isBlank(originalUrl)) {
-            ip = IpUtil.getIpAddr(request);
+        String ip = IpUtil.getIpAddr(request);
+        String requestURI;
+        if (StringUtils.isNotBlank(originalUrl)) {
+            requestURI = originalUrl;
         } else {
-            ip = originalUrl;
+            requestURI = request.getRequestURI();
         }
-        String requestURI = request.getRequestURI();
         String region = "TODO";
         String city = "TODO";
         if (useApi) {
@@ -313,9 +313,10 @@ public class LogService {
     public void printLockAndSemaphoreInfo() {
         StringBuffer sb = new StringBuffer();
         sb.append("Lock Information:");
-        if (locks.values().isEmpty()){
+        if (locks.values()
+                 .isEmpty()) {
             sb.append("No locks found.");
-        }else {
+        } else {
             for (Map.Entry<String, WeakReference<Lock>> entry : locks.entrySet()) {
                 String ip = entry.getKey();
                 WeakReference<Lock> lockRef = entry.getValue();
