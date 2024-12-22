@@ -1,194 +1,351 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html>
 <head>
     <meta charset="UTF-8">
     <title>Log Records</title>
     <link rel="icon" href="/ico/favicon.ico" type="image/x-icon">
-    <!-- 引入 Tailwind CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui-calendar/0.0.8/calendar.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui-calendar/0.0.8/calendar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
     <style>
-        /* 限制表格单元格内容显示行数 */
-        .table-cell-content {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            cursor: pointer; /* 添加点击提示 */
+        .main.container {
+            margin-top: 2em;
+            margin-bottom: 2em;
         }
 
-        /* 设置表格列宽 */
-        #logTable th:nth-child(1), #logTable td:nth-child(1) { width: 5%; } /* ID */
-        #logTable th:nth-child(2), #logTable td:nth-child(2) { max-width: 100px; } /* Session ID */
-        #logTable th:nth-child(3), #logTable td:nth-child(3) { width: 10%; } /* IP */
-        #logTable th:nth-child(4), #logTable td:nth-child(4) { width: 15%; } /* URL */
-        #logTable th:nth-child(5), #logTable td:nth-child(5) { width: 10%; } /* Country */
-        #logTable th:nth-child(6), #logTable td:nth-child(6) { width: 10%; } /* City */
-        #logTable th:nth-child(7), #logTable td:nth-child(7) { width: 15%; } /* Device Info */
-        #logTable th:nth-child(8), #logTable td:nth-child(8) { width: 20%; } /* Operation */
-        #logTable th:nth-child(9), #logTable td:nth-child(9) { width: 10%; } /* First Visit */
-        #logTable th:nth-child(10), #logTable td:nth-child(10) { width: 10%; } /* Created At */
+        .truncate {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
 
-        /* 响应式设计 */
-        @media (max-width: 768px) {
-            #logTable th, #logTable td {
-                width: 100% !important; /* 在小屏幕上每列宽度为100% */
-                max-width: 100% !important;
-                min-width: 100% !important;
+        /* 移动端响应式调整 */
+        @media only screen and (max-width: 767px) {
+            .ui.form .fields {
+                flex-direction: column;
+            }
+            .ui.form .fields .field {
+                width: 100% !important;
+                margin-bottom: 1em;
             }
         }
 
-        /* 模态框样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.5);
+        /* 确保表格和搜索区域宽度一致 */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 1em;
         }
 
-        .modal-content {
-            background-color: white;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 8px;
-            width: 50%;
-            max-width: 600px;
-            position: relative;
+        /* 调整表格底部控件样式 */
+        .table-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1em;
+            margin-bottom: 1em;
         }
 
-        .close {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 24px;
-            cursor: pointer;
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+        }
+
+        .page-size-selector label {
+            margin-right: 0.5em;
+            margin-left: 0.5em;
         }
     </style>
 </head>
-<body class="bg-gray-100 p-4">
+<body>
 
-<div class="container mx-auto">
-    <h1 class="text-center mb-4 text-2xl font-bold">Log Records</h1>
+<div class="ui main container">
+    <h1 class="ui center aligned header">Log Records</h1>
 
     <!-- Search Form -->
-    <form id="searchForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <input type="text" name="sessionId" placeholder="Session ID" class="w-full p-2 border rounded shadow-sm">
-        <input type="text" name="ip" placeholder="IP Address" class="w-full p-2 border rounded shadow-sm">
-        <input type="text" name="url" placeholder="URL" class="w-full p-2 border rounded shadow-sm">
-        <input type="text" name="country" placeholder="Country" class="w-full p-2 border rounded shadow-sm">
-        <input type="text" name="city" placeholder="City" class="w-full p-2 border rounded shadow-sm">
-        <input type="text" name="deviceInfo" placeholder="Device Info" class="w-full p-2 border rounded shadow-sm">
-        <input type="text" name="operation" placeholder="Operation" class="w-full p-2 border rounded shadow-sm">
-        <input type="text" name="firstVisit" placeholder="First Visit" class="w-full p-2 border rounded shadow-sm">
-        <input type="datetime-local" name="startDate" th:value="${#strings.isEmpty(startDate) ? '' : #dates.format(startDate, 'yyyy-MM-dd HH:mm')}" placeholder="Start Date" class="w-full p-2 border rounded shadow-sm">
-        <input type="datetime-local" name="endDate" th:value="${#strings.isEmpty(endDate) ? '' : #dates.format(endDate, 'yyyy-MM-dd HH:mm')}" placeholder="End Date" class="w-full p-2 border rounded shadow-sm">
-        <button type="button" id="searchButton" class="w-full p-2 bg-blue-500 text-white rounded shadow-sm hover:bg-blue-600">Search</button>
+    <form class="ui form" id="searchForm">
+        <div class="four fields">
+            <div class="field">
+                <input type="text" name="sessionId" placeholder="Session ID">
+            </div>
+            <div class="field">
+                <input type="text" name="ip" placeholder="IP Address">
+            </div>
+            <div class="field">
+                <input type="text" name="url" placeholder="URL">
+            </div>
+            <div class="field">
+                <input type="text" name="country" placeholder="Country">
+            </div>
+        </div>
+        <div class="four fields">
+            <div class="field">
+                <input type="text" name="city" placeholder="City">
+            </div>
+            <div class="field">
+                <input type="text" name="deviceInfo" placeholder="Device Info">
+            </div>
+            <div class="field">
+                <input type="text" name="operation" placeholder="Operation">
+            </div>
+            <div class="field">
+                <input type="text" name="firstVisit" placeholder="First Visit">
+            </div>
+        </div>
+        <div class="three fields">
+            <div class="field">
+                <div class="ui calendar" id="startDate">
+                    <div class="ui input left icon">
+                        <i class="calendar icon"></i>
+                        <input type="text" name="startDate" placeholder="Start Date" th:value="${#strings.isEmpty(startDate) ? '' : #dates.format(startDate, 'yyyy-MM-dd HH:mm:ss')}">
+                    </div>
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui calendar" id="endDate">
+                    <div class="ui input left icon">
+                        <i class="calendar icon"></i>
+                        <input type="text" name="endDate" placeholder="End Date" th:value="${#strings.isEmpty(endDate) ? '' : #dates.format(endDate, 'yyyy-MM-dd HH:mm')}">
+                    </div>
+                </div>
+            </div>
+            <div class="field">
+                <button type="button" id="searchButton" class="ui primary fluid button">Search</button>
+            </div>
+        </div>
     </form>
 
-    <!-- Log Records Table -->
-    <table id="logTable" class="table-auto w-full border-collapse border border-gray-300">
-        <thead>
-        <tr class="bg-gray-200">
-            <th class="p-2 border border-gray-300">ID</th>
-            <th class="p-2 border border-gray-300">Session ID</th>
-            <th class="p-2 border border-gray-300">IP</th>
-            <th class="p-2 border border-gray-300">URL</th>
-            <th class="p-2 border border-gray-300">Country</th>
-            <th class="p-2 border border-gray-300">City</th>
-            <th class="p-2 border border-gray-300">Device Info</th>
-            <th class="p-2 border border-gray-300">Operation</th>
-            <th class="p-2 border border-gray-300">First Visit</th>
-            <th class="p-2 border border-gray-300">Created At</th>
-        </tr>
-        </thead>
-        <tbody>
-        <!-- Data will be populated here via AJAX -->
-        </tbody>
-    </table>
+    <!-- Table Container -->
+    <div class="table-container">
+        <table class="ui celled table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Session ID</th>
+                <th>IP</th>
+                <th>URL</th>
+                <th>Country</th>
+                <th>City</th>
+                <th>Device Info</th>
+                <th>Operation</th>
+                <th>First Visit</th>
+                <th>Created At</th>
+            </tr>
+            </thead>
+            <tbody id="logTable">
+            <!-- Data will be populated here via AJAX -->
+            </tbody>
+        </table>
+    </div>
 
-    <!-- Pagination Controls -->
-    <div class="flex justify-between items-center mt-4">
-        <!-- Page Size Selector -->
-        <div class="flex items-center">
-            <label for="pageSize" class="mr-2">Show</label>
-            <select id="pageSize" class="p-2 border rounded shadow-sm">
+    <!-- Table Footer -->
+    <div class="table-footer">
+        <div class="page-size-selector">
+            <label>Show</label>
+            <select class="ui dropdown" id="pageSize">
                 <option value="5">5</option>
                 <option value="10" selected>10</option>
                 <option value="20">20</option>
                 <option value="50">50</option>
             </select>
-            <span class="ml-2">entries per page</span>
+            <label>entries per page</label>
         </div>
-
-        <!-- Pagination -->
-        <nav>
-            <ul id="pagination" class="flex justify-center space-x-2">
-                <!-- Pagination buttons will be generated here -->
-            </ul>
-        </nav>
+        <div class="ui pagination menu" id="pagination">
+            <!-- Pagination will be generated here -->
+        </div>
     </div>
 </div>
 
-<!-- Modal for displaying full content -->
-<div id="modal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <p id="modalContent"></p>
+<!-- Modal for full content -->
+<div class="ui modal" id="contentModal">
+    <div class="header">Full Content</div>
+    <div class="content" id="modalContent"></div>
+    <div class="actions">
+        <div class="ui approve button">Close</div>
     </div>
 </div>
 
 <script>
     $(document).ready(function() {
-        const $logTable = $('#logTable tbody');
+        // Initialize Semantic UI components
+        $('.ui.dropdown').dropdown();
+
+        // Initialize calendar components
+        $('#startDate').calendar({
+            type: 'datetime',
+            firstDayOfWeek: 1,
+            ampm: false,
+            endCalendar: $('#endDate'),
+            formatter: {
+                // 用于显示的时间格式
+                datetime: function(date, settings) {
+                    if (!date) return '';
+                    return moment(date).format('YYYY-MM-DD HH:mm:ss');
+                }
+            }
+        });
+
+        $('#endDate').calendar({
+            type: 'datetime',
+            firstDayOfWeek: 1,
+            ampm: false,
+            startCalendar: $('#startDate'),
+            formatter: {
+                datetime: function(date, settings) {
+                    if (!date) return '';
+                    return moment(date).format('YYYY-MM-DD HH:mm:ss');
+                }
+            }
+        });
+
+        const $logTable = $('#logTable');
         const $pagination = $('#pagination');
         const $pageSize = $('#pageSize');
-        const $modal = $('#modal');
-        const $modalContent = $('#modalContent');
         let currentPage = 0;
         let totalItems = 0;
-        let pageSize = $pageSize.val(); // Default page size
+        let pageSize = $pageSize.val();
+
+        function formatDateForRequest(dateStr) {
+            if (!dateStr) return '';
+            const date = moment(dateStr, 'YYYY-MM-DD HH:mm:ss');
+            return date.isValid() ? date.format('YYYY-MM-DD HH:mm:ss') : '';
+        }
+
+
+        // function loadData(page = 0) {
+        //     const formData = $('#searchForm').serializeArray();
+        //     formData.push({ name: 'page', value: page });
+        //     formData.push({ name: 'size', value: pageSize });
+        //
+        //     $.get('/api/log-records', formData, function(response) {
+        //         $logTable.empty();
+        //         response.data.forEach(record => {
+        //             $logTable.append(`
+        //             <tr>
+        //                 <td><div class="truncate" data-full="${record.id}">${record.id}</div></td>
+        //                 <td><div class="truncate" data-full="${record.sessionId}">${record.sessionId}</div></td>
+        //                 <td><div class="truncate" data-full="${record.ip}">${record.ip}</div></td>
+        //                 <td><div class="truncate" data-full="${record.url}">${record.url}</div></td>
+        //                 <td><div class="truncate" data-full="${record.country}">${record.country}</div></td>
+        //                 <td><div class="truncate" data-full="${record.city}">${record.city}</div></td>
+        //                 <td><div class="truncate" data-full="${record.deviceInfo}">${record.deviceInfo}</div></td>
+        //                 <td><div class="truncate" data-full="${record.operation}">${record.operation}</div></td>
+        //                 <td><div class="truncate" data-full="${record.firstVisit}">${record.firstVisit}</div></td>
+        //                 <td><div class="truncate" data-full="${record.createdAt}">${record.createdAt}</div></td>
+        //             </tr>
+        //         `);
+        //         });
+        //
+        //         totalItems = response.totalItems;
+        //         $pagination.empty();
+        //
+        //         // Add prev button
+        //         $pagination.append(`
+        //         <a class="item ${currentPage === 0 ? 'disabled' : ''}" data-page="${currentPage - 1}">
+        //             <i class="left chevron icon"></i>
+        //         </a>
+        //     `);
+        //
+        //         // Add page numbers
+        //         for (let i = 0; i < Math.ceil(totalItems / pageSize); i++) {
+        //             $pagination.append(`
+        //             <a class="item ${i === currentPage ? 'active' : ''}" data-page="${i}">
+        //                 ${i + 1}
+        //             </a>
+        //         `);
+        //         }
+        //
+        //         // Add next button
+        //         $pagination.append(`
+        //         <a class="item ${currentPage >= Math.ceil(totalItems / pageSize) - 1 ? 'disabled' : ''}" data-page="${currentPage + 1}">
+        //             <i class="right chevron icon"></i>
+        //         </a>
+        //     `);
+        //     });
+        // }
 
         function loadData(page = 0) {
-            const formData = $('#searchForm').serializeArray();
-            formData.push({ name: 'page', value: page });
-            formData.push({ name: 'size', value: pageSize });
+            // 获取表单数据
+            const formData = {};
+            $('#searchForm').serializeArray().forEach(item => {
+                formData[item.name] = item.value;
+            });
 
-            $.get('/api/log-records', formData, function(response) {
-                $logTable.empty();
-                response.data.forEach(record => {
-                    $logTable.append(`
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-2 border border-gray-300"><div class="table-cell-content" data-full="${record.id}">${record.id}</div></td>
-                        <td class="p-2 border border-gray-300"><div class="table-cell-content" data-full="${record.sessionId}">${record.sessionId}</div></td>
-                        <td class="p-2 border border-gray-300"><div class="table-cell-content" data-full="${record.ip}">${record.ip}</div></td>
-                        <td class="p-2 border border-gray-300"><div class="table-cell-content" data-full="${record.url}">${record.url}</div></td>
-                        <td class="p-2 border border-gray-300"><div class="table-cell-content" data-full="${record.country}">${record.country}</div></td>
-                        <td class="p-2 border border-gray-300"><div class="table-cell-content" data-full="${record.city}">${record.city}</div></td>
-                        <td class="p-2 border border-gray-300"><div class="table-cell-content" data-full="${record.deviceInfo}">${record.deviceInfo}</div></td>
-                        <td class="p-2 border border-gray-300"><div class="table-cell-content" data-full="${record.operation}">${record.operation}</div></td>
-                        <td class="p-2 border border-gray-300"><div class="table-cell-content" data-full="${record.firstVisit}">${record.firstVisit}</div></td>
-                        <td class="p-2 border border-gray-300"><div class="table-cell-content" data-full="${record.createdAt}">${record.createdAt}</div></td>
-                    </tr>
-                `);
-                });
+            // 格式化日期
+            if (formData.startDate) {
+                formData.startDate = formatDateForRequest(formData.startDate);
+            }
+            if (formData.endDate) {
+                formData.endDate = formatDateForRequest(formData.endDate);
+            }
 
-                totalItems = response.totalItems;
-                $pagination.empty();
-                for (let i = 0; i < Math.ceil(totalItems / pageSize); i++) {
+            // 添加分页参数
+            formData.page = page;
+            formData.size = pageSize;
+
+            // 发送POST请求
+            $.ajax({
+                url: '/api/log-records',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    $logTable.empty();
+                    response.data.forEach(record => {
+                        $logTable.append(`
+                        <tr>
+                            <td><div class="truncate" data-full="${record.id}">${record.id}</div></td>
+                            <td><div class="truncate" data-full="${record.sessionId}">${record.sessionId}</div></td>
+                            <td><div class="truncate" data-full="${record.ip}">${record.ip}</div></td>
+                            <td><div class="truncate" data-full="${record.url}">${record.url}</div></td>
+                            <td><div class="truncate" data-full="${record.country}">${record.country}</div></td>
+                            <td><div class="truncate" data-full="${record.city}">${record.city}</div></td>
+                            <td><div class="truncate" data-full="${record.deviceInfo}">${record.deviceInfo}</div></td>
+                            <td><div class="truncate" data-full="${record.operation}">${record.operation}</div></td>
+                            <td><div class="truncate" data-full="${record.firstVisit}">${record.firstVisit}</div></td>
+                            <td><div class="truncate" data-full="${record.createdAt}">${record.createdAt}</div></td>
+                        </tr>
+                    `);
+                    });
+
+                    totalItems = response.totalItems;
+                    $pagination.empty();
+
+                    // Add prev button
                     $pagination.append(`
-                    <li class="page-item ${i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-blue-500'} rounded-full px-3 py-1 cursor-pointer" data-page="${i}">
-                        ${i + 1}
-                    </li>
+                    <a class="item ${currentPage === 0 ? 'disabled' : ''}" data-page="${currentPage - 1}">
+                        <i class="left chevron icon"></i>
+                    </a>
                 `);
+
+                    // Add page numbers
+                    for (let i = 0; i < Math.ceil(totalItems / pageSize); i++) {
+                        $pagination.append(`
+                        <a class="item ${i === currentPage ? 'active' : ''}" data-page="${i}">
+                            ${i + 1}
+                        </a>
+                    `);
+                    }
+
+                    // Add next button
+                    $pagination.append(`
+                    <a class="item ${currentPage >= Math.ceil(totalItems / pageSize) - 1 ? 'disabled' : ''}" data-page="${currentPage + 1}">
+                        <i class="right chevron icon"></i>
+                    </a>
+                `);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading data:', error);
+                    // 可以添加错误提示
+                    $logTable.html('<tr><td colspan="10" class="center aligned">Error loading data</td></tr>');
                 }
             });
         }
+
 
         // Handle search button click
         $('#searchButton').click(function() {
@@ -197,8 +354,8 @@
         });
 
         // Handle pagination click
-        $pagination.on('click', '.page-item', function() {
-            currentPage = $(this).data('page');
+        $pagination.on('click', '.item:not(.disabled)', function() {
+            currentPage = parseInt($(this).data('page'));
             loadData(currentPage);
         });
 
@@ -210,22 +367,10 @@
         });
 
         // Handle cell click to show modal
-        $logTable.on('click', '.table-cell-content', function() {
+        $logTable.on('click', '.truncate', function() {
             const fullContent = $(this).data('full');
-            $modalContent.text(fullContent);
-            $modal.show();
-        });
-
-        // Close modal when clicking the close button
-        $('.close').click(function() {
-            $modal.hide();
-        });
-
-        // Close modal when clicking outside the modal content
-        $(window).click(function(event) {
-            if (event.target === $modal[0]) {
-                $modal.hide();
-            }
+            $('#modalContent').text(fullContent);
+            $('#contentModal').modal('show');
         });
 
         // Load initial data

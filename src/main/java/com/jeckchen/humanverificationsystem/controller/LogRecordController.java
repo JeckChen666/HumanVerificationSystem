@@ -9,16 +9,20 @@ import com.jeckchen.humanverificationsystem.service.LogRecordService;
 import com.jeckchen.humanverificationsystem.service.VerificationService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -61,7 +65,7 @@ public class LogRecordController {
     }
 
     @RateLimit(ipLimit = 5, globalLimit = 100)
-    @GetMapping("/api/log-records")
+    @RequestMapping("/api/log-records")
     @ResponseBody
     public Map<String, Object> getLogRecords(
             @RequestParam(required = false) String sessionId,
@@ -72,10 +76,12 @@ public class LogRecordController {
             @RequestParam(required = false) String deviceInfo,
             @RequestParam(required = false) String operation,
             @RequestParam(required = false) String firstVisit,
-            @RequestParam(required = false) LocalDateTime startDate,
-            @RequestParam(required = false) LocalDateTime endDate,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {
+
+
 
         List<LogRecord> logRecords;
         long totalItems = 0;
@@ -84,14 +90,14 @@ public class LogRecordController {
             // 分页查询
             Pageable pageable = PageRequest.of(page, size);
             Page<LogRecord> logRecordsPage = logRecordService.findAllWithFilters(
-                    sessionId, ip, url, country, city, deviceInfo, operation, firstVisit, startDate, endDate, pageable);
+                    sessionId, ip, url, country, city, deviceInfo, operation, firstVisit, parseDateTime(startDate), parseDateTime(endDate), pageable);
 
             logRecords = logRecordsPage.getContent();
             totalItems = logRecordsPage.getTotalElements();
         } else {
             // 不分页，返回所有数据
             logRecords = logRecordService.findAllWithFilters(
-                    sessionId, ip, url, country, city, deviceInfo, operation, firstVisit, startDate, endDate);
+                    sessionId, ip, url, country, city, deviceInfo, operation, firstVisit, parseDateTime(startDate), parseDateTime(endDate));
             totalItems = logRecords.size();
         }
 
@@ -100,5 +106,20 @@ public class LogRecordController {
         response.put("totalItems", totalItems);
 
         return response;
+    }
+
+    /**
+     * 将 yyyy-MM-dd HH:mm 格式的字符串转换为 LocalDateTime
+     *
+     * @param dateTimeString 要转换的日期时间字符串
+     * @return 转换后的 LocalDateTime 对象
+     * @throws DateTimeParseException 如果字符串格式不正确，抛出此异常
+     */
+    public static LocalDateTime parseDateTime(String dateTimeString) throws DateTimeParseException {
+        if (StringUtils.isBlank(dateTimeString)){
+            return null;
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return LocalDateTime.parse(dateTimeString, formatter);
     }
 }
