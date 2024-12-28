@@ -58,7 +58,7 @@ public class LogService {
 
     TimedCache<String, String> timedCache = CacheUtil.newTimedCache(DateUnit.HOUR.getMillis() * 6, DateUnit.MINUTE.getMillis() * 5);
 
-    private final Semaphore semaphore = new Semaphore(20); // 最大20个并发
+    private final Semaphore semaphore = new Semaphore(3); // 最大3个并发
 
     @Resource
     private IpApiRestTemplate ipApiRestTemplate;
@@ -234,6 +234,8 @@ public class LogService {
                             lruCache.put(ip, locationOfIp);
                         }
                     }
+                } catch (com.dtflys.forest.exceptions.ForestRuntimeException e) {
+                    log.info("use \"ipapi.co\" api Fail. ip:{} -- error:{}", ip, e.getMessage());
                 } finally {
                     lock.unlock(); // 解锁
                 }
@@ -314,7 +316,7 @@ public class LogService {
     @Async
     @Scheduled(cron = "0 0/3 * * * ?")
     public void printLockAndSemaphoreInfo() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append("Lock Information:");
         if (locks.values()
                  .isEmpty()) {
@@ -324,11 +326,13 @@ public class LogService {
                 String ip = entry.getKey();
                 WeakReference<Lock> lockRef = entry.getValue();
                 Lock lock = lockRef.get();
-                if (lock != null && lock instanceof ReentrantLock) {
-                    ReentrantLock reentrantLock = (ReentrantLock) lock;
+                if (lock instanceof ReentrantLock reentrantLock) {
                     int waitingThreads = reentrantLock.getQueueLength();
-                    log.info("IP: " + ip + ", Waiting Threads: " + waitingThreads);
-                    sb.append("IP: " + ip + ", Waiting Threads: " + waitingThreads + "; ");
+                    sb.append("IP: ")
+                      .append(ip)
+                      .append(", Waiting Threads: ")
+                      .append(waitingThreads)
+                      .append("; ");
                 }
             }
         }
@@ -336,7 +340,11 @@ public class LogService {
         sb.append("Semaphore Information:");
         int availablePermits = semaphore.availablePermits();
         int queueLength = semaphore.getQueueLength();
-        sb.append("Available Permits: " + availablePermits + ", Queued Threads: " + queueLength + "; ");
+        sb.append("Available Permits: ")
+          .append(availablePermits)
+          .append(", Queued Threads: ")
+          .append(queueLength)
+          .append("; ");
         sb.append("END");
         log.info(sb.toString());
     }

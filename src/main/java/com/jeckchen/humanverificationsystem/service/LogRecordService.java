@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 @Service
@@ -18,6 +19,8 @@ public class LogRecordService {
 
     @Resource
     private LogRecordRepository logRecordRepository;
+
+    private final ReentrantLock lock = new ReentrantLock();
 
     public Page<LogRecord> findAllWithFilters(
             String sessionId, String ip, String url, String country, String city, String deviceInfo,
@@ -77,14 +80,29 @@ public class LogRecordService {
     }
 
     public void updateAll(Collection<LogRecord> logRecords){
-        logRecordRepository.saveAll(logRecords);
+        lock.lock();
+        try {
+            logRecordRepository.saveAll(logRecords);
+        }finally {
+            lock.unlock();
+        }
     }
 
-    public void update(LogRecord logRecord){
-        logRecordRepository.save(logRecord);
+    public void update(LogRecord logRecord) {
+        lock.lock(); // 获取锁
+        try {
+            logRecordRepository.save(logRecord);
+        } finally {
+            lock.unlock(); // 释放锁
+        }
     }
 
     public void save(LogRecord logRecord){
-        logRecordRepository.save(logRecord);
+        lock.lock();
+        try {
+            logRecordRepository.save(logRecord);
+        }finally {
+            lock.unlock();
+        }
     }
 }
